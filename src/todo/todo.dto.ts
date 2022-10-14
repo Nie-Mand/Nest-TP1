@@ -1,5 +1,24 @@
-import { IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsNumberString,
+} from 'class-validator';
+
 import { Status } from 'src/@types/enums';
+
+export class TodoQueryDto {
+  @IsOptional()
+  text: string;
+
+  @IsOptional()
+  @IsEnum(Status)
+  status: Status;
+
+  @IsOptional()
+  @IsNumberString()
+  page: number;
+}
 
 export class TodoCreateDto {
   @IsNotEmpty()

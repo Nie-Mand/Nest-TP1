@@ -6,9 +6,10 @@ import {
   Post,
   Param,
   Put,
+  Query,
 } from '@nestjs/common';
 import { TodoService } from './todo.service';
-import { TodoCreateDto, TodoUpdateDto } from './todo.dto';
+import { TodoCreateDto, TodoUpdateDto, TodoQueryDto } from './todo.dto';
 
 @Controller('/todo')
 export class TodoController {
@@ -30,8 +31,13 @@ export class TodoController {
   }
 
   @Get('/')
-  get() {
-    return this.todoService.get();
+  get(@Query() q: TodoQueryDto) {
+    return this.todoService.get(q.page, q.text, q.status);
+  }
+
+  @Get('/count/status')
+  getCountByStatus() {
+    return this.todoService.todosCountByStatus();
   }
 
   @Get('/:id')

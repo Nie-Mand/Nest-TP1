@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Status, Todo } from 'src/@types/enums';
 import { v4 } from 'uuid';
 import { TodoCreateDto, TodoUpdateDto } from './todo.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { TodoEntity } from 'src/models/todo.model';
 @Injectable()
 export class TodoService {
@@ -17,8 +17,54 @@ export class TodoService {
     return this.todos.save(newTodo);
   }
 
-  get() {
-    return this.todos.find();
+  async get(page?: number, text?: string, status?: Status) {
+    const pageSize = 3;
+
+    let where = {};
+
+    if (text && status) {
+      where = [
+        {
+          name: Like(`%${text}%`),
+          status,
+        },
+        {
+          description: Like(`%${text}%`),
+          status,
+        },
+      ];
+    } else if (text) {
+      where = [
+        {
+          name: Like(`%${text}%`),
+        },
+        {
+          description: Like(`%${text}%`),
+        },
+      ];
+    } else if (status) {
+      where = {
+        status,
+      };
+    }
+
+    const allData = await this.todos.count();
+
+    const data = await this.todos.find({
+      where,
+      order: {
+        createdAt: 'DESC',
+      },
+      take: pageSize,
+      skip: page ? (Number(page) - 1) * pageSize : 0,
+    });
+
+    return {
+      data,
+      page: Number(page) || 1,
+      pageSize,
+      totalPages: Math.ceil(allData / pageSize),
+    };
   }
 
   async update(id: string, _todo: TodoUpdateDto) {
@@ -29,7 +75,7 @@ export class TodoService {
     });
 
     if (!todo) {
-      throw new BadRequestException('Todo not found');
+      throw new NotFoundException('Todo not found');
     }
 
     if (_todo.name) todo.name = _todo.name;
@@ -39,18 +85,47 @@ export class TodoService {
     return this.todos.save(todo);
   }
 
-  getOne(id: string) {
-    return this.todos.findOne({
+  async getOne(id: string) {
+    const todo = await this.todos.findOne({
       where: {
         id,
       },
     });
+
+    if (!todo) {
+      throw new NotFoundException('Todo not found');
+    }
+
+    return todo;
   }
 
-  delete(id: string) {
-    return this.todos.softDelete({
+  async delete(id: string) {
+    const todo = await this.todos.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!todo) {
+      throw new NotFoundException('Todo not found');
+    }
+
+    todo.softRemove();
+  }
+
+  restore(id: string) {
+    return this.todos.restore({
       id,
     });
+  }
+
+  todosCountByStatus() {
+    return this.todos
+      .createQueryBuilder('todo')
+      .select('todo.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('todo.status')
+      .getRawMany();
   }
 
   // OLD VERSION
@@ -80,9 +155,9 @@ export class TodoService {
   }
 
   __delete(id: string) {
-    //   const index = this.__todos.findIndex((todo) => todo.id === id);
-    //   this.__todos.splice(index, 1);
-    //   return true;
+    const index = this.__todos.findIndex((todo) => todo.id === id);
+    this.__todos.splice(index, 1);
+    return true;
   }
 
   __getOne(id: string) {
