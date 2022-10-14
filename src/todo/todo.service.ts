@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { v4 } from 'uuid';
-import { TodoCreateDto } from './todo-dto.dto';
+import { TodoCreateDto } from './todo.dto';
 @Injectable()
-export class TodoModelService {
+export class TodoService {
   todos: Todo[] = [];
 
   create(todo: TodoCreateDto) {
