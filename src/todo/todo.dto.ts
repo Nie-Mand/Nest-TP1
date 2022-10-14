@@ -1,4 +1,5 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
+import { Status } from 'src/@types/enums';
 
 export class TodoCreateDto {
   @IsNotEmpty()
@@ -6,4 +7,16 @@ export class TodoCreateDto {
 
   @IsNotEmpty()
   description: string;
+}
+
+export class TodoUpdateDto {
+  @IsOptional()
+  name: string;
+
+  @IsOptional()
+  description: string;
+
+  @IsOptional()
+  @IsEnum(Status)
+  status: Status;
 }

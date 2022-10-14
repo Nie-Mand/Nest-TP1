@@ -1,55 +1,91 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { Status, Todo } from 'src/@types/enums';
 import { v4 } from 'uuid';
-import { TodoCreateDto } from './todo.dto';
+import { TodoCreateDto, TodoUpdateDto } from './todo.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { TodoEntity } from 'src/models/todo.model';
 @Injectable()
 export class TodoService {
-  todos: Todo[] = [];
+  constructor(
+    @InjectRepository(TodoEntity)
+    private readonly todos: Repository<TodoEntity>,
+  ) {}
 
   create(todo: TodoCreateDto) {
+    const newTodo = this.todos.create(todo);
+    return this.todos.save(newTodo);
+  }
+
+  get() {
+    return this.todos.find();
+  }
+
+  async update(id: string, _todo: TodoUpdateDto) {
+    const todo = await this.todos.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!todo) {
+      throw new BadRequestException('Todo not found');
+    }
+
+    if (_todo.name) todo.name = _todo.name;
+    if (_todo.description) todo.description = _todo.description;
+    if (_todo.status) todo.status = _todo.status;
+
+    return this.todos.save(todo);
+  }
+
+  getOne(id: string) {
+    return this.todos.findOne({
+      where: {
+        id,
+      },
+    });
+  }
+
+  delete(id: string) {
+    return this.todos.softDelete({
+      id,
+    });
+  }
+
+  // OLD VERSION
+  __todos: Todo[] = [];
+  __create(todo: TodoCreateDto) {
     const newTodo: Todo = {
       ...todo,
       id: v4(),
       createdAt: new Date(),
       status: Status.ACTIVE,
     };
-    this.todos.push(newTodo);
+    this.__todos.push(newTodo);
     return newTodo;
   }
 
-  get() {
-    return this.todos;
+  __get() {
+    return this.__todos;
   }
 
-  update(id: string, todo: TodoCreateDto) {
-    const index = this.todos.findIndex((todo) => todo.id === id);
-    this.todos[index] = {
-      ...this.todos[index],
+  __update(id: string, todo: TodoCreateDto) {
+    const index = this.__todos.findIndex((todo) => todo.id === id);
+    this.__todos[index] = {
+      ...this.__todos[index],
       ...todo,
     };
-    return this.todos[index];
+    return this.__todos[index];
   }
 
-  delete(id: string) {
-    const index = this.todos.findIndex((todo) => todo.id === id);
-    this.todos.splice(index, 1);
-    return true;
+  __delete(id: string) {
+    //   const index = this.__todos.findIndex((todo) => todo.id === id);
+    //   this.__todos.splice(index, 1);
+    //   return true;
   }
 
-  getOne(id: string) {
-    return this.todos.find((todo) => todo.id === id);
+  __getOne(id: string) {
+    return this.__todos.find((todo) => todo.id === id);
   }
-}
-
-export enum Status {
-  ACTIVE = 'ACTIVE',
-  DONE = 'DONE',
-  WAITING = 'WAITING',
-}
-
-export interface Todo {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: Date;
-  status: Status;
 }

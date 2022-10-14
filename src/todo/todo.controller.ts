@@ -8,7 +8,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { TodoService } from './todo.service';
-import { TodoCreateDto } from './todo.dto';
+import { TodoCreateDto, TodoUpdateDto } from './todo.dto';
 
 @Controller('/todo')
 export class TodoController {
@@ -20,7 +20,7 @@ export class TodoController {
   }
 
   @Put('/:id')
-  update(@Body() input: TodoCreateDto, @Param('id') id: string) {
+  update(@Body() input: TodoUpdateDto, @Param('id') id: string) {
     return this.todoService.update(id, input);
   }
 
